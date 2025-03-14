@@ -44,6 +44,9 @@ dependencies {
 
     // [6] AOP
     implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    // MinIO
+    implementation 'io.minio:minio:8.3.5'
 }
 
 test {

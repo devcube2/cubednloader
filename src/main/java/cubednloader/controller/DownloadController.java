@@ -1,23 +1,15 @@
 package cubednloader.controller;
 
+import cubednloader.model.dto.DownloadInfoDto;
 import cubednloader.service.DownloadService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStreamReader;
 
 @RestController
 @RequestMapping("/download")
@@ -25,40 +17,43 @@ public class DownloadController {
     @Autowired
     DownloadService downloadService;
 
-    @GetMapping("")
-    public ResponseEntity<Resource> downloadFile(@RequestParam String filename) throws IOException {
+    @PostMapping("")
+    public ResponseEntity<String> downloadFile(@RequestBody DownloadInfoDto dto) {
+        String outputDirectory = "Z:/";  // 다운로드한 비디오를 저장할 디렉토리 경로
+
+        // yt-dlp 명령어 생성
+        String command = String.format("Z:/yt-dlp.exe -f bestvideo+bestaudio/best --merge-output-format mp4 -o \"%s/%%(title)s.%%(ext)s\" %s", outputDirectory, dto.getUrl());
+
+        // yt-dlp -f bestvideo+bestaudio/best --merge-output-format mp4 <URL>
+
+        System.out.println("command = " + command);
+
+        // ProcessBuilder를 사용하여 외부 명령어 실행
+        ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
+        processBuilder.redirectErrorStream(true); // 오류 메시지를 표준 출력으로 리디렉션
+
         try {
-            System.out.println("DownloadController.downloadFile");
-            System.out.println("filename = " + filename);
+            // 프로세스 실행
+            Process process = processBuilder.start();
 
-            // 1. 한글 파일명을 UTF-8 디코딩
-            String decodedFilename = java.net.URLDecoder.decode(filename, StandardCharsets.UTF_8);
+            // 출력 결과를 읽어오는 BufferedReader
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
 
-            // 2. 실제 파일 경로 설정
-            Path filePath = Paths.get("uploads/").resolve(decodedFilename).normalize();
-            Resource resource = new UrlResource(filePath.toUri());
-
-            if (!resource.exists() || !resource.isReadable()) {
-                System.err.println(filePath);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            // 명령어의 출력 결과를 콘솔에 출력
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
             }
 
-            // 3. 브라우저 호환을 위한 UTF-8 파일명 인코딩
-            String encodedFilename = URLEncoder.encode(decodedFilename, StandardCharsets.UTF_8)
-                    .replaceAll("\\+", "%20"); // 공백 처리
-
-            // 4. HTTP 헤더 설정
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedFilename + "\"; filename*=UTF-8''" + encodedFilename);
-
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(resource);
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
+            // 프로세스 종료 대기
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                return new ResponseEntity<>("다운로드 완료", HttpStatus.OK);
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
         }
 
-        return null;
+        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 }
