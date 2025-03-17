@@ -47,6 +47,9 @@ dependencies {
 
     // MinIO
     implementation 'io.minio:minio:8.3.5'
+
+    //
+    compileOnly "org.springframework.boot:spring-boot-configuration-processor"
 }
 
 test {

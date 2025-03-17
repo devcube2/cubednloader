@@ -1,0 +1,15 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/springweb
+    username: root
+    password: 1234
+
+cube-downloader:
+  settings:
+    bin: "Z:/yt-dlp.exe"
+  minio:
+    user: admin
+    password: 1q2w3e$R%T^Y
