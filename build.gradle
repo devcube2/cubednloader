@@ -48,6 +48,9 @@ dependencies {
     // MinIO
     implementation 'io.minio:minio:8.3.5'
 
+    // logging
+    implementation 'org.springframework.boot:spring-boot-starter-logging'
+
     //
     compileOnly "org.springframework.boot:spring-boot-configuration-processor"
 }

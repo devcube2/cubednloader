@@ -9,9 +9,19 @@ import org.springframework.stereotype.Component;
 @Data
 public class CubeDownloaderProperties {
     private Settings settings;
+    private Minio minio;
 
     @Data
     public static class Settings {
         private String bin;
+        private String downloadPath;
+    }
+
+    @Data
+    public static class Minio {
+        private String server;
+        private String user;
+        private String password;
+        private String bucket;
     }
 }

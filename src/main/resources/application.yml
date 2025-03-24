@@ -9,7 +9,17 @@ spring:
 
 cube-downloader:
   settings:
-    bin: "Z:/yt-dlp.exe"
+    bin: "C:/test/yt-dlp.exe"
+    download-path: "Z:/"
   minio:
-    user: admin
-    password: 1q2w3e$R%T^Y
+    server: "http://192.168.56.101:9000"
+    user: devcube
+    password: devcube1234
+    bucket: test
+
+logging:
+  level:
+    org.springframework: INFO # 프로젝트 전체 로그레벨 적용
+    cubednloader: DEBUG # 특정 패키지 로그레벨 적용
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n" # 콘솔로그 출력 포맷 지정
