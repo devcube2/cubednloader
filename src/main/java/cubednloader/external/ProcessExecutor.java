@@ -16,21 +16,6 @@ import java.util.regex.Pattern;
 @Slf4j
 @Component
 public class ProcessExecutor {
-    private String getBufferedReader(BufferedReader reader) {
-        StringBuffer strBuf = new StringBuffer();
-
-        try {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                strBuf.append(line);
-            }
-        } catch (IOException e) {
-            log.error(e.getMessage());
-        }
-
-        return strBuf.toString();
-    }
-
     private void printBufferedReader(BufferedReader reader, Consumer<String> logMethod) {
         reader.lines().forEach(logMethod);
     }
@@ -46,23 +31,11 @@ public class ProcessExecutor {
 
             Process process = builder.start();
 
-            // 커맨드 실행결과 출력
-            String successResult = getBufferedReader(new BufferedReader(new InputStreamReader(process.getInputStream())));
+            // 커맨드 실행후, 버퍼를 읽어주지 않으면 waitFor 리턴이 되지 않는다. 반드시 있어야 되는 코드들이다.
+            printBufferedReader(new BufferedReader(new InputStreamReader(process.getInputStream())), log::debug);
             printBufferedReader(new BufferedReader(new InputStreamReader(process.getErrorStream())), log::error);
 
-            log.debug("success result: {}", successResult);
-
-            Pattern pattern = Pattern.compile("([A-Za-z0-9_ -]+\\.mp4)");
-            Matcher matcher = pattern.matcher(successResult);
-
-            while (matcher.find()) {
-                System.out.println("MP4 File Path: " + matcher.group(1));
-            }
-
-            // 커맨드 실행후 대기
-            int ret = process.waitFor();
-
-            return ret;
+            return process.waitFor();
         } catch (Exception e) {
             log.error(e.getMessage());
         }

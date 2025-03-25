@@ -10,8 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.CompletableFuture;
-
 @Slf4j
 @Service
 public class DownloadService {
@@ -26,32 +24,41 @@ public class DownloadService {
     }
 
     @Async
-    private CompletableFuture<Integer> downloadContent(DownloadInfoDto dto) {
-        String binPath = cubeDownloaderProperties.getSettings().getBin();
-        String outputPath = String.format("\"%s/%%(title)s.%%(ext)s\" %s", cubeDownloaderProperties.getSettings().getDownloadPath(), dto.getUrl());
+    private String downloadContent(DownloadInfoDto dto) {
+        String presignedURL = "";
 
-        int ret = processExecutor.runProcess(binPath, "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]", "--write-thumbnail", "-o", outputPath);
+        String URL = dto.getUrl();
 
-        log.debug("runProcess exit: {}", ret);
-        System.out.println("ret = " + ret);
+        String outputPath = String.format("\"%s/%%(title)s.%%(ext)s\" \"%s\"", cubeDownloaderProperties.getSettings().getDownloadPath(), URL);
+        if (minioOperator.isObjectExists(outputPath)) {
+            // minio 에 이미 존재함. 다운로드 받지 않아도 됨.
+            System.out.println("객체 존재함..");
+        } else { // minio 에 존재하지 않으므로 직접 다운로드하고, minio 에 저장해야됨.
+            // yt-dlp 바이너리 경로 가져오기
+            String binPath = cubeDownloaderProperties.getSettings().getBin();
 
-        log.debug("test: {}", outputPath);
+            // yt-dlp 이용하여 다운로드
+            int ret = processExecutor.runProcess(binPath, "-f", "bestvideo+bestaudio", "--write-thumbnail", "-o", outputPath);
+            if (ret != 0) { // yt-dlp 이 비정상 종료
+                return "";
+            }
 
-//        minioOperator.uploadFile(cubeDownloaderProperties.getMinio().getBucket(), "power.mp4", outputPath);
+            if (!minioOperator.uploadObject(URL, URL)) {
+                return "";
+            }
+        }
 
-        return CompletableFuture.completedFuture(ret);
+//        minioOperator.isObjectExists(cubeDownloaderProperties.getMinio().getBucket(), "power.mp4", outputPath);
+
+        return presignedURL;
     }
 
     public ResponseEntity<String> getPresignedURL(DownloadInfoDto dto) {
-        // 1. yt-dlp 사용하여 다운로드
-        CompletableFuture<Integer> result = downloadContent(dto);
+        String presignedURL = downloadContent(dto);
+        if (presignedURL.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("서버 오류가 발생했습니다.");
+        }
 
-        // 비동기 작업이 완료된 후의 처리 방법
-        result.thenAccept(ret -> {
-            log.info("Download completed with result: {}", ret);
-            // 추가적인 처리
-        });
-
-        return new ResponseEntity<>("Test Presigned URL", HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).body(presignedURL);
     }
 }

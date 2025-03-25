@@ -51,6 +51,10 @@ dependencies {
     // logging
     implementation 'org.springframework.boot:spring-boot-starter-logging'
 
+    // 유효성 검사
+    implementation 'org.hibernate.validator:hibernate-validator:6.2.0.Final'
+    implementation 'jakarta.validation:jakarta.validation-api:2.0.2'
+
     //
     compileOnly "org.springframework.boot:spring-boot-configuration-processor"
 }
