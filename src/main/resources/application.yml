@@ -1,5 +1,6 @@
 server:
   port: 8080
+  forward-headers-strategy: framework  # 프록시 서버 뒤에서 실제 클라이언트 IP 추출
 
 spring:
   datasource:
